@@ -116,11 +116,11 @@ Handle<Value> pigz(
                     }
                     if (FD_ISSET(childStdin[1], &setIn)) {
 
-                            int remaining = inputLen - charsWrote;
-                            int amount = remaining > stride ? stride : remaining;
-                            int wrote = write(childStdin[PIPE_WRITE], inputArr + amount, stride);
+                            bool overflows = charsWrote + stride >= inputLen;
+                            uint amount = overflows ? (inputLen - charsWrote) : stride;
+                            int wrote = write(childStdin[PIPE_WRITE], inputArr + charsWrote, amount);
 
-                            if (wrote == -1) {
+                            if (wrote < 0) {
                                 close(childStdin[PIPE_WRITE]);
                                 if (needsToRead) {
                                     close(childStdout[PIPE_READ]);
