@@ -76,9 +76,9 @@ Handle<Value> pigz(
             if (dup2(childStdout[PIPE_WRITE], STDOUT_FILENO) == -1) {
                 _exit(1);
             }
-            if (dup2(childStdout[PIPE_WRITE], STDERR_FILENO) == -1) {
-                _exit(1);
-            }
+            //if (dup2(childStdout[PIPE_WRITE], STDERR_FILENO) == -1) {
+            //    _exit(1);
+            //}
 
             //stdin etc redirected, don't need these now
             close(childStdin[PIPE_READ]);
