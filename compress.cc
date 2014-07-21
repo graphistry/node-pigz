@@ -167,12 +167,13 @@ Handle<Value> pigz(
                 FD_SET(childStdin[1], &setIn);
                 FD_ZERO(&setOut);
                 FD_SET(childStdout[0], &setOut);
-            }
+            } //WHILE
 
-            const unsigned argc = 2;
+            const unsigned argc = 3;
             Local<Value> argv[argc] = {
                 Local<Value>::New(Undefined()), //no error
-                Local<Value>::New(Number::New(charsRead)) //bytes read
+                Local<Value>::New(Number::New(charsRead)), //compressed bytes read
+                Local<Value>::New(Number::New(charsWrote)) //uncompressed bytes written
             };
             cb->Call(Context::GetCurrent()->Global(), argc, argv);
             return scope.Close(Undefined());
