@@ -6,7 +6,7 @@ What is it?
 
 Node-pigz wraps pigz for multicore compression. Pigz "is a fully functional replacement for gzip that exploits multiple processors and multiple cores to the hilt when compressing data." It is a great way to reduce latency, or, for the same latency, increase compression.
 
-Node-pigz supports both JavaScript's ArrayBuffers (typed arrays) and Node's Buffer.
+Node-pigz supports both JavaScript's ArrayBuffers (typed arrays) and Node's Buffer. The default wrapper takes Uint8Arrays and returns Buffers.
 
 
 
