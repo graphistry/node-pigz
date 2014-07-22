@@ -86,7 +86,7 @@ Handle<Value> pigz(
             close(childStdout[PIPE_READ]);
             close(childStdout[PIPE_WRITE]);
 
-            execl("/usr/local/bin/pigz", "pigz", "-1", "-b", "1024", (char*)0);
+            execl("/usr/local/bin/pigz", "pigz", "-3", "-b", "1024", (char*)0);
 
             _exit(1); //FIXME: signal error
         }
