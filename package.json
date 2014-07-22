@@ -4,8 +4,7 @@
   "description": "Multicore gzip/libz compression via a pig wrapper",
   "main": "compress.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "install": "node-gyp rebuild"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
     "multicore",
