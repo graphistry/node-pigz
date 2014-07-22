@@ -1,0 +1,75 @@
+=== node-pigz by Graphistry, Inc. ===
+
+
+What is it?
+-----------
+
+Node-pigz wraps pigz for multicore compression. Pigz "is a fully functional replacement for gzip that exploits multiple processors and multiple cores to the hilt when compressing data." It is a great way to reduce latency, or, for the same latency, increase compression.
+
+Node-pigz supports both JavaScript's ArrayBuffers (typed arrays) and Node's Buffer.
+
+
+
+The Latest Version
+------------------
+
+See github repo
+
+
+
+Installation
+------------
+
+node-pigz depends on pigz and node-gyp. It assumes pigz is at "/usr/local/bin/pigz".
+
+1. brew install pigz
+2. npm install -g node-gyp
+3. npm install
+
+
+
+Licensing
+---------
+
+See file LICENSE
+
+
+Contacts
+--------
+
+See github repo
+
+
+
+Example
+-------
+
+    var compress = require('./compress.js');
+    
+    var inputArr = [];
+    for (var i = 0; i < 1024 * 1024; i++) {
+        inputArr.push(i % 20);
+    }
+    
+    var inputTypedArr = new Uint32Array(inputArr);
+    var t0 = new Date().getTime();
+    compress.deflate(new Uint8Array(inputTypedArr.buffer), function (err, outputBuffer) {
+        if (err) {
+            return console.error('Compression error', err);
+        } else {
+            console.log(
+                'deflated:', (inputTypedArr.byteLength/(1024*1024)).toFixed(2), 'MB', 
+                '-->', (outputBuffer.length/(1024*1024)), 'MB');
+            console.log('(', (100 * outputBuffer.length/inputTypedArr.byteLength).toFixed(2), '%)');
+            console.log(new Date().getTime() - t0, 'ms');
+        }
+    });
+
+    
+    // Output:
+    // deflated: 4.00 MB --> 0.027303695678710938 MB
+    // ( 0.68 %)
+    // 28 'ms'
+
+
+

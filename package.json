@@ -1,0 +1,27 @@
+{
+  "name": "node-pigz",
+  "version": "0.0.1",
+  "description": "Multicore gzip/libz compression via a pig wrapper",
+  "main": "compress.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "install": "node-gyp rebuild"
+  },
+  "repository": {
+    "type": "git",
+    "url": "adsf"
+  },
+  "keywords": [
+    "multicore",
+    "multithreaded",
+    "parallel",
+    "compress",
+    "deflate",
+    "pigz",
+    "zlib",
+    "gzip"
+  ],
+  "author": "Leo Meyerovich (Graphistry, Inc.)",
+  "license": "BSD-2",
+  "gypfile": true
+}
