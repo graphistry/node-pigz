@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <poll.h>
+#include <errno.h>
 
 
 using namespace v8;
@@ -86,7 +87,7 @@ Handle<Value> pigz(
             close(childStdout[PIPE_READ]);
             close(childStdout[PIPE_WRITE]);
 
-            execl("/usr/local/bin/pigz", "pigz", "-3", "-b", "1024", (char*)0);
+            execlp("pigz", "pigz", "-3", "-b", "1024", (char*)0);
 
             _exit(1); //FIXME: signal error
         }
@@ -235,9 +236,51 @@ Handle<Value> DeflateMethod(const Arguments& args) {
 }
 
 
+Handle<Value> ErrorOnlyMethod(const Arguments& args) {
+    HandleScope scope;
+
+    ThrowException(Exception::Error(
+        String::New("pigz executable not found. Install pigz (if necessary) and ensure it's in the system PATH.")
+    ));
+    return scope.Close(Undefined());
+}
+
+
+// Checks to make the 'pigz' command is found somewhere in the PATH and we can execute it.
+// Returns 0 on success, EXIT_FAILURE or a non-zero pigz exit code on failure.
+int checkForPigz() {
+    pid_t processId;
+    if ((processId = fork()) == 0) { // CHILD
+        execlp("pigz", "pigz", "--version", (char*)0);
+        // Since execlp() should never return, if we get here, there's been an error
+        _exit(errno);
+
+    } else if (processId < 0) { // ERROR
+        return EXIT_FAILURE;
+
+    } else { // PARENT
+        int status;
+        waitpid(processId, &status, 0);
+
+        if(WIFEXITED(status)) {
+            return WEXITSTATUS(status);
+        } else {
+            return EXIT_FAILURE;
+        }
+    }
+}
+
+
 void init(Handle<Object> exports) {
-  exports->Set(String::NewSymbol("deflate"),
-      FunctionTemplate::New(DeflateMethod)->GetFunction());
+    // If pigz is not found on this system, 'deflate' should only throw exceptions
+    int pigzStatus = checkForPigz();
+    if(pigzStatus != EXIT_SUCCESS) {
+        exports->Set(String::NewSymbol("deflate"),
+           FunctionTemplate::New(ErrorOnlyMethod)->GetFunction());
+    } else {
+        exports->Set(String::NewSymbol("deflate"),
+           FunctionTemplate::New(DeflateMethod)->GetFunction());
+    }
 }
 
 NODE_MODULE(compress, init)

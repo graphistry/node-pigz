@@ -29,6 +29,7 @@ module.exports = {
                         : output.slice(0, bytesRead));
                 });
         } catch (e) {
+            console.error('bad deflate', e);
             cb(new Error('bad deflate'));
         }
     }
