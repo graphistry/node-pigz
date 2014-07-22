@@ -7,10 +7,6 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "install": "node-gyp rebuild"
   },
-  "repository": {
-    "type": "git",
-    "url": "adsf"
-  },
   "keywords": [
     "multicore",
     "multithreaded",
@@ -21,7 +17,13 @@
     "zlib",
     "gzip"
   ],
-  "author": "Leo Meyerovich (Graphistry, Inc.)",
+  "author": {
+      "name": "Leo Meyerovich (Graphistry, Inc.)",
+      "email": "leo@graphistry.com"
+  },
   "license": "BSD-2",
-  "gypfile": true
+  "gypfile": true,
+  "engines": {
+    "node": ">=0.10.0"
+  }
 }
