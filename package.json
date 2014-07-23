@@ -24,5 +24,8 @@
   "gypfile": true,
   "engines": {
     "node": ">=0.10.0"
+  },
+  "devDependencies": {
+    "underscore": "^1.6.0"
   }
 }
