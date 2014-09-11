@@ -9,6 +9,10 @@
 #include <time.h>
 #include <poll.h>
 #include <errno.h>
+#include <cstdlib>
+#include <cstdio>
+#include <unistd.h>
+#include <sys/wait.h>
 
 
 using namespace v8;
