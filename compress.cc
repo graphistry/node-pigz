@@ -12,6 +12,8 @@
 #include <unistd.h>
 #include <sys/wait.h>
 
+#include <errno.h>
+
 
 using namespace v8;
 
@@ -56,7 +58,7 @@ Handle<Value> pigz(
     if (pipe(childStdout) < 0) {
         close(childStdin[PIPE_READ]);
         close(childStdin[PIPE_WRITE]);
-        return failureCallback(scope, cb, "Native error: failedto allocate pipe for child output redirect");
+        return failureCallback(scope, cb, "Native error: failed to allocate pipe for child output redirect");
     }
 
     int pid = fork();
@@ -68,6 +70,7 @@ Handle<Value> pigz(
             close(childStdin[PIPE_WRITE]);
             close(childStdout[PIPE_READ]);
             close(childStdout[PIPE_WRITE]);
+            std::cerr << "Native error: failed to fork, errno " << errno << std::endl;
             return failureCallback(scope, cb, "Native error: failed to fork");
         }
 
