@@ -1,4 +1,5 @@
-var compressBindings = require('./build/Release/compress');
+var compressBindings = require('./build/Release/compress'),
+    scheduler = require('./scheduler.js')();
 
 module.exports = {
 
@@ -17,6 +18,25 @@ module.exports = {
     //      (add to offset to get end offset)
     // TODO proxy options for controlling number of processes, block length, etc.
     deflate: function (rawInput, rawOptions, cb) {
+
+        var task = function (k) {
+            module.exports.deflateHelper(rawInput, rawOptions, function () {
+
+                //notify scheduler
+                k();
+
+                //notify caller
+                var args = Array.prototype.slice.call(arguments, 0);
+                cb.apply(this, args);
+
+            });
+        };
+
+        scheduler.enqueue(task);
+
+    },
+
+    deflateHelper: function (rawInput, rawOptions, cb) {
 
         if (!rawInput ||
             !(rawInput instanceof Buffer
