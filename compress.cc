@@ -13,6 +13,7 @@
 #include <sys/wait.h>
 
 #include <errno.h>
+#include <string.h>
 
 
 using namespace v8;
@@ -71,7 +72,9 @@ Handle<Value> pigz(
             close(childStdout[PIPE_READ]);
             close(childStdout[PIPE_WRITE]);
             std::cerr << "Native error: failed to fork, errno " << errno << std::endl;
-            return failureCallback(scope, cb, "Native error: failed to fork");
+            const char *err = strerror(errno);
+            std::string strErr(err);
+            return failureCallback(scope, cb, strErr);
         }
 
         case 0: { //CHILD
