@@ -9,7 +9,7 @@
 
 module.exports = function (MAX_OUTSTANDING) {
 
-    MAX_OUTSTANDING = MAX_OUTSTANDING || 3;
+    MAX_OUTSTANDING = MAX_OUTSTANDING || 10;
 
     //[ k ]
     var queued = [],
