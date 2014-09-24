@@ -178,6 +178,15 @@ Handle<Value> pigz(
                 FD_SET(childStdout[0], &setOut);
             } //WHILE
 
+
+            //wait for child to finish
+            int status;
+            if (waitpid(pid, &status, 0) == -1) {
+                const char *err = strerror(errno);
+                std::string strErr(err);
+                return failureCallback(scope, cb, strErr);
+            }
+
             const unsigned argc = 3;
             Local<Value> argv[argc] = {
                 Local<Value>::New(Undefined()), //no error
