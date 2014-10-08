@@ -1,5 +1,6 @@
 var compressBindings = require('./build/Release/compress'),
-    scheduler = require('./scheduler.js')();
+    scheduler = require('./scheduler.js')(),
+    debug = require('debug')('compress:main');
 
 module.exports = {
 
@@ -19,6 +20,8 @@ module.exports = {
     // TODO proxy options for controlling number of processes, block length, etc.
     deflate: function (rawInput, rawOptions, cb) {
 
+        debug('deflate');
+
         var task = function (k) {
             module.exports.deflateHelper(rawInput, rawOptions, function () {
 
@@ -37,6 +40,8 @@ module.exports = {
     },
 
     deflateHelper: function (rawInput, rawOptions, cb) {
+
+        debug('deflate helper');
 
         if (!rawInput ||
             !(rawInput instanceof Buffer
@@ -78,6 +83,9 @@ module.exports = {
                 //bytesRead: # of poll's read() calls
                 //bytesWritten: # of poll's write() calls
                 function (err, bytesRead, bytesWritten) {
+
+                    debug('deflate callback', err, bytesRead, bytesWritten);
+
 
                     if (err) {
                         //console.error(output, input.length, EXTRA_BYTES)

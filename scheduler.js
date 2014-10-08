@@ -1,3 +1,5 @@
+var debug = require('debug')('compress:scheduler');
+
 /*
     Given max number of simulatenous tasks, returns enqueue function
     Task is a function that takes a continuation and calls it when done
@@ -21,6 +23,9 @@ module.exports = function (MAX_OUTSTANDING) {
         //( -> ) -> ()
         enqueue:
             function (k) {
+
+                debug('enqueue');
+
                 if (running.length < MAX_OUTSTANDING) {
                     running.push(k);
 
@@ -38,6 +43,8 @@ module.exports = function (MAX_OUTSTANDING) {
         //( -> ) -> ()
         dequeue:
             function (k) {
+
+                debug('dequeue');
 
                 running.splice(running.indexOf(k), 1);
 

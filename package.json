@@ -17,8 +17,8 @@
     "gzip"
   ],
   "author": {
-      "name": "Leo Meyerovich (Graphistry, Inc.)",
-      "email": "leo@graphistry.com"
+    "name": "Leo Meyerovich (Graphistry, Inc.)",
+    "email": "leo@graphistry.com"
   },
   "license": "BSD-2",
   "gypfile": true,
@@ -27,5 +27,8 @@
   },
   "devDependencies": {
     "underscore": "^1.6.0"
+  },
+  "dependencies": {
+    "debug": "^2.0.0"
   }
 }
