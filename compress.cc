@@ -1,6 +1,11 @@
+#include <nan.h>
+
+/*
 #include <node.h>
 #include <node_buffer.h>
 #include <v8.h>
+*/
+
 
 //shell access
 #include <string>
@@ -16,17 +21,73 @@
 #include <string.h>
 
 
-using namespace v8;
+//using namespace v8;
+
+using v8::FunctionTemplate;
+using v8::Handle;
+using v8::kExternalUnsignedByteArray;
+
+using v8::Object;
+using v8::String;
+using v8::Local;
+using v8::Value;
+using v8::Number;
+using v8::Function;
 
 
-Handle<Value> failureCallback(HandleScope &scope, Local<Function> &cb, std::string msg) {
-    const unsigned argc = 1;
 
-    Local<Value> argv[argc] = { Local<Value>::New(String::New(msg.c_str())) };
-    cb->Call(Context::GetCurrent()->Global(), argc, argv);
+class PigzWorker : public NanAsyncWorker {
+    private:
+        char *inputArr;
+        uint inputLen;
+        char *outputArr;
+        uint outputLen;
 
-    return scope.Close(Undefined());
-}
+        uint outputCharsRead;
+        uint outputCharsWrote;
+
+    public:
+
+        PigzWorker(
+            char *inputArr, uint inputLen,
+            char *outputArr, uint outputLen,
+            NanCallback *cb)
+        : NanAsyncWorker(cb), inputArr(inputArr), inputLen(inputLen), outputArr(outputArr), outputLen(outputLen)
+        { }
+
+        ~PigzWorker() {}
+
+        //defined below
+        void pigz(
+            char *inputArr, uint inputLen,
+            char *outputArr, uint outputLen);
+
+
+        // Executed inside the worker-thread.
+        // It is not safe to access V8, or V8 data structures
+        // here, so everything we need for input and output
+        // should go on `this`.
+        void Execute () {
+            pigz(inputArr, inputLen, outputArr, outputLen);
+        }
+
+        // Executed when the async work is complete
+        // this function will be run inside the main event loop
+        // so it is safe to use V8 again
+        void HandleOKCallback () {
+            NanScope();
+
+            Local<Value> argv[] = {
+                NanNull()
+                , NanNew<Number>(outputCharsRead)
+                , NanNew<Number>(outputCharsWrote)
+            };
+
+            callback->Call(3, argv);
+        }
+
+};
+
 
 
 
@@ -36,11 +97,10 @@ Handle<Value> failureCallback(HandleScope &scope, Local<Function> &cb, std::stri
 //FIXME bounds check on writing too much
 #define PIPE_READ 0
 #define PIPE_WRITE 1
-Handle<Value> pigz(
-    HandleScope &scope,
+void PigzWorker::pigz(
     char *inputArr, uint inputLen,
-    char *outputArr, uint outputLen,
-    Local<Function> &cb) {
+    char *outputArr, uint outputLen)
+{
 
     fflush(stdin);
     fflush(stdout);
@@ -54,12 +114,13 @@ Handle<Value> pigz(
     struct timeval timeout = {0, 1};
 
     if (pipe(childStdin) < 0) {
-        return failureCallback(scope, cb, "Native error: failed to allocate pipe for child input redirect");
+        SetErrorMessage("Native error: failed to allocate pipe for child input redirect");
+        return;
     }
     if (pipe(childStdout) < 0) {
         close(childStdin[PIPE_READ]);
         close(childStdin[PIPE_WRITE]);
-        return failureCallback(scope, cb, "Native error: failed to allocate pipe for child output redirect");
+        SetErrorMessage("Native error: failed to allocate pipe for child output redirect");
     }
 
     int pid = fork();
@@ -74,7 +135,8 @@ Handle<Value> pigz(
             std::cerr << "Native error: failed to fork, errno " << errno << std::endl;
             const char *err = strerror(errno);
             std::string strErr(err);
-            return failureCallback(scope, cb, strErr);
+            SetErrorMessage(strErr.c_str());
+            return;
         }
 
         case 0: { //CHILD
@@ -121,7 +183,8 @@ Handle<Value> pigz(
                 int selWrite = needsToWrite ? select(childStdin[1] + 1, NULL, &setIn, NULL, &timeout) : 0;
                 if (selWrite) {
                     if (selWrite < 0) {
-                        return failureCallback(scope, cb, "Native error: bad selWrite");
+                        SetErrorMessage("Native error: bad selWrite");
+                        return;
                     }
                     if (FD_ISSET(childStdin[1], &setIn)) {
 
@@ -134,7 +197,8 @@ Handle<Value> pigz(
                                 if (needsToRead) {
                                     close(childStdout[PIPE_READ]);
                                 }
-                                return failureCallback(scope, cb, "Native error: bad write");
+                                SetErrorMessage("Native error: bad write");
+                                return;
                             } else {
                                 charsWrote = charsWrote + wrote;
                             }
@@ -150,7 +214,8 @@ Handle<Value> pigz(
 
                 if (selRead) {
                     if (selRead < 0) {
-                        return failureCallback(scope, cb, "Native error: bad selRead");
+                        SetErrorMessage("Native error: bad selRead");
+                        return;
                     }
                     if (FD_ISSET(childStdout[0], &setOut)) {
 
@@ -161,7 +226,8 @@ Handle<Value> pigz(
                                 close(childStdin[PIPE_WRITE]);
                             }
                             close(childStdout[PIPE_READ]);
-                            return failureCallback(scope, cb, "Native error: bad read");
+                            SetErrorMessage("Native error: bad read");
+                            return;
                         } else if (readStatus == 0 && !needsToWrite) {
                             needsToRead = false;
                             close(childStdout[PIPE_READ]);
@@ -184,21 +250,19 @@ Handle<Value> pigz(
             if (waitpid(pid, &status, 0) == -1) {
                 const char *err = strerror(errno);
                 std::string strErr(err);
-                return failureCallback(scope, cb, strErr);
+                SetErrorMessage(strErr.c_str());
+                return;
             }
 
-            const unsigned argc = 3;
-            Local<Value> argv[argc] = {
-                Local<Value>::New(Undefined()), //no error
-                Local<Value>::New(Number::New(charsRead)), //compressed bytes read
-                Local<Value>::New(Number::New(charsWrote)) //uncompressed bytes written
-            };
-            cb->Call(Context::GetCurrent()->Global(), argc, argv);
-            return scope.Close(Undefined());
+            outputCharsRead = charsRead;
+            outputCharsWrote = charsWrote;
+            return;
+
         }
 
     }
 }
+
 
 
 bool unwrapHeapObj(Local<Object> &obj, uint &len, char **arr) {
@@ -208,9 +272,9 @@ bool unwrapHeapObj(Local<Object> &obj, uint &len, char **arr) {
         len = obj->GetIndexedPropertiesExternalArrayDataLength();
         return true;
     } else if (node::Buffer::HasInstance(obj)) {
-        unsigned int offset = obj->Get(String::New("byteOffset"))->Uint32Value();
+        unsigned int offset = obj->Get(NanNew<String>("byteOffset"))->Uint32Value();
         *arr = (char*) &((char*) obj->GetIndexedPropertiesExternalArrayData())[offset];
-        len = obj->Get(String::New("byteLength"))->Uint32Value() - offset;
+        len = obj->Get(NanNew<String>("byteLength"))->Uint32Value() - offset;
         return true;
     } else {
         return false;
@@ -222,20 +286,18 @@ bool unwrapHeapObj(Local<Object> &obj, uint &len, char **arr) {
 
 //In JS: (Uint8Array U Buffer) * (Uint8Array U Buffer) * (err * uint -> ()) -> ()
 //Given input/output buffers, compress and notify if err, and if on success, amount written
-Handle<Value> DeflateMethod(const Arguments& args) {
-    HandleScope scope;
+NAN_METHOD(DeflateMethod) {
+    NanScope();
 
     if (args.Length() < 3) {
-        ThrowException(Exception::TypeError(String::New("Expected 3 arguments: input TypedArray, output TypedArray, and callback")));
-        return scope.Close(Undefined());
+        return NanThrowError("Expected 3 arguments: input TypedArray, output TypedArray, and callback");
     }
 
     Local<Object> inputObj = args[0]->ToObject();
     uint inputLen;
     char* inputArr;
     if (!unwrapHeapObj(inputObj, inputLen, &inputArr)) {
-        ThrowException(Exception::TypeError(String::New("Expected first argument to be a Buffer or Uint8Array")));
-        return scope.Close(Undefined());
+        return NanThrowError("Expected first argument to be a Buffer or Uint8Array");
     }
 
 
@@ -243,23 +305,20 @@ Handle<Value> DeflateMethod(const Arguments& args) {
     uint outputLen;
     char* outputArr;
     if (!unwrapHeapObj(outputObj, outputLen, &outputArr)) {
-        ThrowException(Exception::TypeError(String::New("Expected first argument to be a Buffer or Uint8Array")));
-        return scope.Close(Undefined());
+        return NanThrowError("Expected first argument to be a Buffer or Uint8Array");
     }
 
-    Local<Function> cb = Local<Function>::Cast(args[2]);
+    NanCallback *cb = new NanCallback(args[2].As<Function>());
 
-    return pigz(scope, inputArr, inputLen, outputArr, outputLen, cb);
+    NanAsyncQueueWorker(new PigzWorker(inputArr, inputLen, outputArr, outputLen, cb));
+
+    NanReturnUndefined();
 }
 
 
-Handle<Value> ErrorOnlyMethod(const Arguments& args) {
-    HandleScope scope;
-
-    ThrowException(Exception::Error(
-        String::New("pigz executable not found. Install pigz (if necessary) and ensure it's in the system PATH.")
-    ));
-    return scope.Close(Undefined());
+NAN_METHOD(ErrorOnlyMethod) {
+    NanScope();
+    return NanThrowError("pigz executable not found. Install pigz (if necessary) and ensure it's in the system PATH.");
 }
 
 
@@ -292,11 +351,11 @@ void init(Handle<Object> exports) {
     // If pigz is not found on this system, 'deflate' should only throw exceptions
     int pigzStatus = checkForPigz();
     if(pigzStatus != EXIT_SUCCESS) {
-        exports->Set(String::NewSymbol("deflate"),
-           FunctionTemplate::New(ErrorOnlyMethod)->GetFunction());
+        exports->Set(NanNew<String>("deflate"),
+           NanNew<FunctionTemplate>(ErrorOnlyMethod)->GetFunction());
     } else {
-        exports->Set(String::NewSymbol("deflate"),
-           FunctionTemplate::New(DeflateMethod)->GetFunction());
+        exports->Set(NanNew<String>("deflate"),
+           NanNew<FunctionTemplate>(DeflateMethod)->GetFunction());
     }
 }
 
