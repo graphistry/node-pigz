@@ -11,7 +11,7 @@ var debug = require('debug')('compress:scheduler');
 
 module.exports = function (MAX_OUTSTANDING) {
 
-    MAX_OUTSTANDING = MAX_OUTSTANDING || 10;
+    MAX_OUTSTANDING = MAX_OUTSTANDING || 1;
 
     //[ k ]
     var queued = [],
