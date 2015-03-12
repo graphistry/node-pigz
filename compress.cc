@@ -1,3 +1,16 @@
+//////////////////
+
+
+//FIXME: these replace updated Nan calls, remove when updating Nan
+#define NanNull() Local<Value>::New(v8::Undefined())
+#define SetErrorMessage(wat) \
+    std::string myErr = wat; \
+    errmsg = myErr.c_str();
+
+
+////////////////
+
+
 #include <nan.h>
 
 /*
@@ -34,9 +47,6 @@ using v8::Value;
 using v8::Number;
 using v8::Function;
 
-
-#define NanNull() Local<Value>::New(v8::Undefined())
-#define SetErrorMessage(ZZZ)
 
 
 class PigzWorker : public NanAsyncWorker {
