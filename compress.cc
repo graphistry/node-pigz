@@ -35,6 +35,9 @@ using v8::Number;
 using v8::Function;
 
 
+#define NanNull() Local<Value>::New(v8::Undefined())
+#define SetErrorMessage(ZZZ)
+
 
 class PigzWorker : public NanAsyncWorker {
     private:
@@ -79,9 +82,12 @@ class PigzWorker : public NanAsyncWorker {
 
             Local<Value> argv[] = {
                 NanNull()
-                , NanNew<Number>(outputCharsRead)
-                , NanNew<Number>(outputCharsWrote)
+                , Local<Value>::New(Number::New(outputCharsRead))
+                , Local<Value>::New(Number::New(outputCharsWrote))
             };
+
+
+
 
             callback->Call(3, argv);
         }
@@ -115,6 +121,7 @@ void PigzWorker::pigz(
 
     if (pipe(childStdin) < 0) {
         SetErrorMessage("Native error: failed to allocate pipe for child input redirect");
+        //HandleErrorCallback();
         return;
     }
     if (pipe(childStdout) < 0) {
@@ -272,9 +279,9 @@ bool unwrapHeapObj(Local<Object> &obj, uint &len, char **arr) {
         len = obj->GetIndexedPropertiesExternalArrayDataLength();
         return true;
     } else if (node::Buffer::HasInstance(obj)) {
-        unsigned int offset = obj->Get(NanNew<String>("byteOffset"))->Uint32Value();
+        unsigned int offset = obj->Get(String::New("byteOffset"))->Uint32Value();
         *arr = (char*) &((char*) obj->GetIndexedPropertiesExternalArrayData())[offset];
-        len = obj->Get(NanNew<String>("byteLength"))->Uint32Value() - offset;
+        len = obj->Get(String::New("byteLength"))->Uint32Value() - offset;
         return true;
     } else {
         return false;
@@ -351,11 +358,11 @@ void init(Handle<Object> exports) {
     // If pigz is not found on this system, 'deflate' should only throw exceptions
     int pigzStatus = checkForPigz();
     if(pigzStatus != EXIT_SUCCESS) {
-        exports->Set(NanNew<String>("deflate"),
-           NanNew<FunctionTemplate>(ErrorOnlyMethod)->GetFunction());
+        exports->Set(String::NewSymbol("deflate"),
+           FunctionTemplate::New(ErrorOnlyMethod)->GetFunction());
     } else {
-        exports->Set(NanNew<String>("deflate"),
-           NanNew<FunctionTemplate>(DeflateMethod)->GetFunction());
+        exports->Set(String::NewSymbol("deflate"),
+           FunctionTemplate::New(DeflateMethod)->GetFunction());
     }
 }
 
