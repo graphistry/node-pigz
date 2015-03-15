@@ -93,11 +93,11 @@ module.exports = {
                     }
 
                     var expectedWrittenBytes =
-                        input instanceof Buffer ? input.length // TODO (input.length - input.offset) ?
+                        input instanceof Buffer ? input.length
                         : input instanceof ArrayBuffer ? input.byteLength
-                        : (input.byteLength - input.byteOffset);
+                        : (input.byteLength);
                     if (expectedWrittenBytes != bytesWritten) {
-                        return cb(new Error('did not compress all input'));
+                        return cb(new Error('did not compress all input. Bytes written: ' + bytesWritten + ' Expected bytes written' + expectedWrittenBytes));
                     }
 
                     /*
