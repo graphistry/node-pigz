@@ -174,7 +174,7 @@ void PigzWorker::pigz(
             close(childStdout[PIPE_READ]);
             close(childStdout[PIPE_WRITE]);
 
-            execlp("pigz", "pigz", "-3", "-b", "1024", (char*)0);
+            execlp("pigz", "pigz", inputLen > 1024 * 1024 ? "-5" : "-3", "-b", "64", (char*)0);
 
             _exit(1); //FIXME: signal error
         }
