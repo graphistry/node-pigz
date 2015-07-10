@@ -122,7 +122,7 @@ module.exports = {
                 });
 
         } catch (e) {
-            cb(new Error('bad deflate'));
+            cb(e);
         }
     }
 
