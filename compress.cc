@@ -3,9 +3,9 @@
 
 //FIXME: these replace updated Nan calls, remove when updating Nan
 #define NanNull() Local<Value>::New(v8::Undefined())
-#define SetErrorMessage(wat) \
-    std::string myErr = wat; \
-    errmsg = myErr.c_str();
+//#define SetErrorMessage(wat) \
+//    std::string myErr = wat; \
+//    errmsg = myErr.c_str();
 
 
 ////////////////
@@ -38,7 +38,6 @@
 
 using v8::FunctionTemplate;
 using v8::Handle;
-using v8::kExternalUnsignedByteArray;
 
 using v8::Object;
 using v8::String;
@@ -49,7 +48,7 @@ using v8::Function;
 
 
 
-class PigzWorker : public NanAsyncWorker {
+class PigzWorker : public Nan::AsyncWorker {
     private:
         char *inputArr;
         uint inputLen;
@@ -64,8 +63,8 @@ class PigzWorker : public NanAsyncWorker {
         PigzWorker(
             char *inputArr, uint inputLen,
             char *outputArr, uint outputLen,
-            NanCallback *cb)
-        : NanAsyncWorker(cb), inputArr(inputArr), inputLen(inputLen), outputArr(outputArr), outputLen(outputLen)
+            Nan::Callback *cb)
+        : Nan::AsyncWorker(cb), inputArr(inputArr), inputLen(inputLen), outputArr(outputArr), outputLen(outputLen)
         { }
 
         ~PigzWorker() {}
@@ -88,12 +87,12 @@ class PigzWorker : public NanAsyncWorker {
         // this function will be run inside the main event loop
         // so it is safe to use V8 again
         void HandleOKCallback () {
-            NanScope();
+            Nan::HandleScope scope;
 
             Local<Value> argv[] = {
-                NanNull()
-                , Local<Value>::New(Number::New(outputCharsRead))
-                , Local<Value>::New(Number::New(outputCharsWrote))
+                Nan::Null()
+                , Nan::New<Number>(outputCharsRead)
+                , Nan::New<Number>(outputCharsWrote)
             };
 
 
