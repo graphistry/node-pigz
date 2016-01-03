@@ -1,24 +1,33 @@
 //////////////////
 
 
-//FIXME: these replace updated Nan calls, remove when updating Nan
-#define NanNull() Local<Value>::New(v8::Undefined())
-#define SetErrorMessage(wat) \
-    std::string myErr = wat; \
-    errmsg = myErr.c_str();
-
-
-////////////////
-
-
 #include <nan.h>
+#include "compress.h"
 
-/*
-#include <node.h>
-#include <node_buffer.h>
-#include <v8.h>
-*/
+using v8::Function;
+using v8::Local;
+using v8::Number;
+using v8::Value;
+using Nan::AsyncQueueWorker;
+using Nan::AsyncWorker;
+using Nan::Callback;
+using Nan::HandleScope;
+using Nan::New;
+using Nan::Null;
+using Nan::HandleScope;
+using Nan::To;
+using Nan::ThrowError;
+using Nan::ThrowTypeError;
 
+using v8::FunctionTemplate;
+using v8::Handle;
+using v8::Object;
+using v8::String;
+using Nan::GetFunction;
+using Nan::New;
+using Nan::Set;
+
+using Nan::TypedArrayContents;
 
 //shell access
 #include <string>
@@ -34,22 +43,7 @@
 #include <string.h>
 
 
-//using namespace v8;
-
-using v8::FunctionTemplate;
-using v8::Handle;
-using v8::kExternalUnsignedByteArray;
-
-using v8::Object;
-using v8::String;
-using v8::Local;
-using v8::Value;
-using v8::Number;
-using v8::Function;
-
-
-
-class PigzWorker : public NanAsyncWorker {
+class PigzWorker : public AsyncWorker {
     private:
         char *inputArr;
         uint inputLen;
@@ -64,8 +58,8 @@ class PigzWorker : public NanAsyncWorker {
         PigzWorker(
             char *inputArr, uint inputLen,
             char *outputArr, uint outputLen,
-            NanCallback *cb)
-        : NanAsyncWorker(cb), inputArr(inputArr), inputLen(inputLen), outputArr(outputArr), outputLen(outputLen)
+            Callback *cb)
+        : AsyncWorker(cb), inputArr(inputArr), inputLen(inputLen), outputArr(outputArr), outputLen(outputLen)
         { }
 
         ~PigzWorker() {}
@@ -88,16 +82,13 @@ class PigzWorker : public NanAsyncWorker {
         // this function will be run inside the main event loop
         // so it is safe to use V8 again
         void HandleOKCallback () {
-            NanScope();
+            HandleScope scope;
 
             Local<Value> argv[] = {
-                NanNull()
-                , Local<Value>::New(Number::New(outputCharsRead))
-                , Local<Value>::New(Number::New(outputCharsWrote))
+                Null()
+              , New<Number>(outputCharsRead)
+              , New<Number>(outputCharsWrote)
             };
-
-
-
 
             callback->Call(3, argv);
         }
@@ -282,60 +273,35 @@ void PigzWorker::pigz(
 
 
 
-bool unwrapHeapObj(Local<Object> &obj, uint &len, char **arr) {
-
-    if (obj->GetIndexedPropertiesExternalArrayDataType() == kExternalUnsignedByteArray) {
-        *arr = static_cast<char*>(obj->GetIndexedPropertiesExternalArrayData());
-        len = obj->GetIndexedPropertiesExternalArrayDataLength();
-        return true;
-    } else if (node::Buffer::HasInstance(obj)) {
-        unsigned int offset = obj->Get(String::New("byteOffset"))->Uint32Value();
-        *arr = (char*) &((char*) obj->GetIndexedPropertiesExternalArrayData())[offset];
-        len = obj->Get(String::New("byteLength"))->Uint32Value() - offset;
-        return true;
-    } else {
-        return false;
-    }
-
-}
-
-
-
 //In JS: (Uint8Array U Buffer) * (Uint8Array U Buffer) * (err * uint -> ()) -> ()
 //Given input/output buffers, compress and notify if err, and if on success, amount written
 NAN_METHOD(DeflateMethod) {
-    NanScope();
 
-    if (args.Length() < 3) {
-        return NanThrowError("Expected 3 arguments: input TypedArray, output TypedArray, and callback");
+    if (info.Length() < 3) {
+        return ThrowTypeError("Expected 3 arguments: input TypedArray, output TypedArray, and callback");
     }
 
-    Local<Object> inputObj = args[0]->ToObject();
-    uint inputLen;
-    char* inputArr;
-    if (!unwrapHeapObj(inputObj, inputLen, &inputArr)) {
-        return NanThrowError("Expected first argument to be a Buffer or Uint8Array");
-    }
+    v8::Local<v8::Object> rawInputObj = info[0].As<v8::Object>();
+    v8::Local<v8::Object> rawOutputObj = info[1].As<v8::Object>();
+    Callback *cb = new Callback(info[2].As<Function>());
 
+    //FIXME return error if size 0 (caused by empty or null array)
+    TypedArrayContents<uint32_t> typedInput(rawInputObj);
+    char *inputArr = reinterpret_cast<char*>(*typedInput);
+    uint32_t inputLen = typedInput.length() * sizeof(uint32_t) / sizeof(char);
 
-    Local<Object> outputObj = args[1]->ToObject();
-    uint outputLen;
-    char* outputArr;
-    if (!unwrapHeapObj(outputObj, outputLen, &outputArr)) {
-        return NanThrowError("Expected first argument to be a Buffer or Uint8Array");
-    }
+    //FIXME return error if size 0 (caused by empty or null array)
+    TypedArrayContents<uint32_t> typedOutput(rawOutputObj);
+    char *outputArr = reinterpret_cast<char*>(*typedOutput);
+    uint32_t outputLen = typedOutput.length() * sizeof(uint32_t) / sizeof(char);
 
-    NanCallback *cb = new NanCallback(args[2].As<Function>());
-
-    NanAsyncQueueWorker(new PigzWorker(inputArr, inputLen, outputArr, outputLen, cb));
-
-    NanReturnUndefined();
+    AsyncQueueWorker(new PigzWorker(inputArr, inputLen, outputArr, outputLen, cb));
 }
 
 
 NAN_METHOD(ErrorOnlyMethod) {
-    NanScope();
-    return NanThrowError("pigz executable not found. Install pigz (if necessary) and ensure it's in the system PATH.");
+    HandleScope();
+    return ThrowError("pigz executable not found. Install pigz (if necessary) and ensure it's in the system PATH.");
 }
 
 
@@ -364,17 +330,19 @@ int checkForPigz() {
 }
 
 
-void init(Handle<Object> exports) {
+NAN_MODULE_INIT(init) {
+
     // If pigz is not found on this system, 'deflate' should only throw exceptions
     int pigzStatus = checkForPigz();
     if(pigzStatus != EXIT_SUCCESS) {
-        exports->Set(String::NewSymbol("deflate"),
-           FunctionTemplate::New(ErrorOnlyMethod)->GetFunction());
+      Set(target, New<String>("deflate").ToLocalChecked(),
+        GetFunction(New<FunctionTemplate>(ErrorOnlyMethod)).ToLocalChecked());
     } else {
-        exports->Set(String::NewSymbol("deflate"),
-           FunctionTemplate::New(DeflateMethod)->GetFunction());
+      Set(target, New<String>("deflate").ToLocalChecked(),
+        GetFunction(New<FunctionTemplate>(DeflateMethod)).ToLocalChecked());
     }
 }
+
 
 NODE_MODULE(compress, init)
 
