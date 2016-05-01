@@ -286,9 +286,10 @@ NAN_METHOD(DeflateMethod) {
     Callback *cb = new Callback(info[2].As<Function>());
 
     //FIXME return error if size 0 (caused by empty or null array)
-    TypedArrayContents<uint32_t> typedInput(rawInputObj);
+    TypedArrayContents<uint8_t> typedInput(rawInputObj);
     char *inputArr = reinterpret_cast<char*>(*typedInput);
-    uint32_t inputLen = typedInput.length() * sizeof(uint32_t) / sizeof(char);
+    //std::cout << " TYPEDINPUT.LENGTH(): " << typedInput.length() << std::endl;
+    uint32_t inputLen = typedInput.length() * sizeof(uint8_t) / sizeof(char);
 
     //FIXME return error if size 0 (caused by empty or null array)
     TypedArrayContents<uint32_t> typedOutput(rawOutputObj);
