@@ -55,6 +55,7 @@ module.exports = {
         //Uint8Array U Buffer
         var input =
               rawInput instanceof Buffer ? rawInput
+            : rawInput instanceof Uint8Array ? rawInput
             : rawInput instanceof ArrayBuffer ? new Uint8Array(rawInput, 0, rawInput.byteLength)
             : new Uint8Array(rawInput.buffer, rawInput.byteOffset, rawInput.byteLength);
 
