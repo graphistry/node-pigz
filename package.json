@@ -1,6 +1,6 @@
 {
   "name": "@graphistry/node-pigz",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Multicore gzip/libz compression via a pig wrapper",
   "main": "compress.js",
   "scripts": {
