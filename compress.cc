@@ -20,7 +20,6 @@ using Nan::ThrowError;
 using Nan::ThrowTypeError;
 
 using v8::FunctionTemplate;
-using v8::Handle;
 using v8::Object;
 using v8::String;
 using Nan::GetFunction;
@@ -90,7 +89,7 @@ class PigzWorker : public AsyncWorker {
               , New<Number>(outputCharsWrote)
             };
 
-            callback->Call(3, argv);
+            Nan::Call(*callback, 3, argv);
         }
 
 };
