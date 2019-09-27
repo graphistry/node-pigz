@@ -1,7 +1,8 @@
 {
-  "name": "@graphistry/node-pigz",
+  "name": "@graphistry/node-pigz",  
   "version": "2.0.2",
   "description": "Multicore gzip/libz compression via a pig wrapper",
+  "homepage": "https://github.com/graphistry/node-pigz",
   "main": "compress.js",
   "scripts": {
     "test": "node test"
@@ -16,6 +17,10 @@
     "zlib",
     "gzip"
   ],
+  "repository": {
+    "type" : "git",
+    "url" : "https://github.com/graphistry/node-pigz.git"
+  },
   "author": {
     "name": "Leo Meyerovich (Graphistry, Inc.)",
     "email": "leo@graphistry.com"
